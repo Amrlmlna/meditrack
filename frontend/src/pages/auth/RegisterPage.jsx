@@ -1,54 +1,63 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Formik, Form, Field, ErrorMessage } from "formik"
-import * as Yup from "yup"
-import { useAuth } from "../../contexts/AuthContext"
-import { FiUser, FiMail, FiLock, FiUserPlus } from "react-icons/fi"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
+import { useAuth } from "../../contexts/AuthContext";
+import { FiUser, FiMail, FiLock, FiUserPlus } from "react-icons/fi";
 
 const RegisterSchema = Yup.object().shape({
   name: Yup.string().required("Nama wajib diisi"),
   email: Yup.string().email("Email tidak valid").required("Email wajib diisi"),
-  password: Yup.string().min(6, "Password minimal 6 karakter").required("Password wajib diisi"),
+  password: Yup.string()
+    .min(6, "Password minimal 6 karakter")
+    .required("Password wajib diisi"),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password"), null], "Password tidak cocok")
     .required("Konfirmasi password wajib diisi"),
   role: Yup.string().required("Pilih jenis pengguna"),
-  // Kondisional validasi untuk dokter
-  specialization: Yup.string().when("role", {
-    is: "doctor",
-    then: Yup.string().required("Spesialisasi wajib diisi"),
-  }),
-  doctor_license: Yup.string().when("role", {
-    is: "doctor",
-    then: Yup.string().required("Nomor lisensi wajib diisi"),
-  }),
-})
+
+  // Spesialisasi wajib diisi hanya jika role adalah "doctor"
+  specialization: Yup.string()
+    .nullable()
+    .when("role", (role, schema) =>
+      role === "doctor" ? schema.required("Spesialisasi wajib diisi") : schema
+    ),
+
+  // Nomor lisensi wajib diisi hanya jika role adalah "doctor"
+  doctor_license: Yup.string()
+    .nullable()
+    .when("role", (role, schema) =>
+      role === "doctor" ? schema.required("Nomor lisensi wajib diisi") : schema
+    ),
+});
 
 const RegisterPage = () => {
-  const { register } = useAuth()
-  const navigate = useNavigate()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedRole, setSelectedRole] = useState("patient")
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("patient");
 
   const handleSubmit = async (values) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      const result = await register(values)
+      const result = await register(values);
 
       if (result.success) {
-        navigate("/dashboard")
+        navigate("/dashboard");
       }
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div>
-      <h2 className="text-center text-2xl font-bold text-gray-900 mb-6">Daftar Akun Baru</h2>
+      <h2 className="text-center text-2xl font-bold text-gray-900 mb-6">
+        Daftar Akun Baru
+      </h2>
 
       <Formik
         initialValues={{
@@ -78,13 +87,15 @@ const RegisterPage = () => {
                       : "border-gray-300 hover:bg-gray-50"
                   }`}
                   onClick={() => {
-                    setFieldValue("role", "patient")
-                    setSelectedRole("patient")
+                    setFieldValue("role", "patient");
+                    setSelectedRole("patient");
                   }}
                 >
                   <FiUser className="mx-auto h-6 w-6 mb-2" />
                   <div className="font-medium">Pasien</div>
-                  <div className="text-xs text-gray-500">Akses layanan kesehatan</div>
+                  <div className="text-xs text-gray-500">
+                    Akses layanan kesehatan
+                  </div>
                 </div>
 
                 <div
@@ -94,13 +105,15 @@ const RegisterPage = () => {
                       : "border-gray-300 hover:bg-gray-50"
                   }`}
                   onClick={() => {
-                    setFieldValue("role", "doctor")
-                    setSelectedRole("doctor")
+                    setFieldValue("role", "doctor");
+                    setSelectedRole("doctor");
                   }}
                 >
                   <FiUser className="mx-auto h-6 w-6 mb-2" />
                   <div className="font-medium">Dokter</div>
-                  <div className="text-xs text-gray-500">Berikan layanan konsultasi</div>
+                  <div className="text-xs text-gray-500">
+                    Berikan layanan konsultasi
+                  </div>
                 </div>
               </div>
             </div>
@@ -118,11 +131,17 @@ const RegisterPage = () => {
                   name="name"
                   type="text"
                   autoComplete="name"
-                  className={`form-input pl-10 ${errors.name && touched.name ? "border-red-500" : ""}`}
+                  className={`form-input pl-10 ${
+                    errors.name && touched.name ? "border-red-500" : ""
+                  }`}
                   placeholder="Nama lengkap Anda"
                 />
               </div>
-              <ErrorMessage name="name" component="div" className="form-error" />
+              <ErrorMessage
+                name="name"
+                component="div"
+                className="form-error"
+              />
             </div>
 
             <div>
@@ -138,11 +157,17 @@ const RegisterPage = () => {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  className={`form-input pl-10 ${errors.email && touched.email ? "border-red-500" : ""}`}
+                  className={`form-input pl-10 ${
+                    errors.email && touched.email ? "border-red-500" : ""
+                  }`}
                   placeholder="nama@example.com"
                 />
               </div>
-              <ErrorMessage name="email" component="div" className="form-error" />
+              <ErrorMessage
+                name="email"
+                component="div"
+                className="form-error"
+              />
             </div>
 
             <div>
@@ -158,11 +183,17 @@ const RegisterPage = () => {
                   name="password"
                   type="password"
                   autoComplete="new-password"
-                  className={`form-input pl-10 ${errors.password && touched.password ? "border-red-500" : ""}`}
+                  className={`form-input pl-10 ${
+                    errors.password && touched.password ? "border-red-500" : ""
+                  }`}
                   placeholder="••••••••"
                 />
               </div>
-              <ErrorMessage name="password" component="div" className="form-error" />
+              <ErrorMessage
+                name="password"
+                component="div"
+                className="form-error"
+              />
             </div>
 
             <div>
@@ -179,12 +210,18 @@ const RegisterPage = () => {
                   type="password"
                   autoComplete="new-password"
                   className={`form-input pl-10 ${
-                    errors.confirmPassword && touched.confirmPassword ? "border-red-500" : ""
+                    errors.confirmPassword && touched.confirmPassword
+                      ? "border-red-500"
+                      : ""
                   }`}
                   placeholder="••••••••"
                 />
               </div>
-              <ErrorMessage name="confirmPassword" component="div" className="form-error" />
+              <ErrorMessage
+                name="confirmPassword"
+                component="div"
+                className="form-error"
+              />
             </div>
 
             {/* Tampilkan form tambahan untuk dokter */}
@@ -198,10 +235,18 @@ const RegisterPage = () => {
                     id="specialization"
                     name="specialization"
                     type="text"
-                    className={`form-input ${errors.specialization && touched.specialization ? "border-red-500" : ""}`}
+                    className={`form-input ${
+                      errors.specialization && touched.specialization
+                        ? "border-red-500"
+                        : ""
+                    }`}
                     placeholder="Contoh: Kardiologi, Umum, Anak"
                   />
-                  <ErrorMessage name="specialization" component="div" className="form-error" />
+                  <ErrorMessage
+                    name="specialization"
+                    component="div"
+                    className="form-error"
+                  />
                 </div>
 
                 <div>
@@ -212,7 +257,11 @@ const RegisterPage = () => {
                     as="select"
                     id="category"
                     name="category"
-                    className={`form-input ${errors.category && touched.category ? "border-red-500" : ""}`}
+                    className={`form-input ${
+                      errors.category && touched.category
+                        ? "border-red-500"
+                        : ""
+                    }`}
                   >
                     <option value="umum">Umum</option>
                     <option value="spesialis">Spesialis</option>
@@ -223,7 +272,11 @@ const RegisterPage = () => {
                     <option value="jantung">Jantung</option>
                     <option value="saraf">Saraf</option>
                   </Field>
-                  <ErrorMessage name="category" component="div" className="form-error" />
+                  <ErrorMessage
+                    name="category"
+                    component="div"
+                    className="form-error"
+                  />
                 </div>
 
                 <div>
@@ -235,10 +288,18 @@ const RegisterPage = () => {
                     name="practice_years"
                     type="number"
                     min="0"
-                    className={`form-input ${errors.practice_years && touched.practice_years ? "border-red-500" : ""}`}
+                    className={`form-input ${
+                      errors.practice_years && touched.practice_years
+                        ? "border-red-500"
+                        : ""
+                    }`}
                     placeholder="Contoh: 5"
                   />
-                  <ErrorMessage name="practice_years" component="div" className="form-error" />
+                  <ErrorMessage
+                    name="practice_years"
+                    component="div"
+                    className="form-error"
+                  />
                 </div>
 
                 <div>
@@ -249,10 +310,18 @@ const RegisterPage = () => {
                     id="doctor_license"
                     name="doctor_license"
                     type="text"
-                    className={`form-input ${errors.doctor_license && touched.doctor_license ? "border-red-500" : ""}`}
+                    className={`form-input ${
+                      errors.doctor_license && touched.doctor_license
+                        ? "border-red-500"
+                        : ""
+                    }`}
                     placeholder="Nomor STR/Lisensi Dokter"
                   />
-                  <ErrorMessage name="doctor_license" component="div" className="form-error" />
+                  <ErrorMessage
+                    name="doctor_license"
+                    component="div"
+                    className="form-error"
+                  />
                 </div>
 
                 <div>
@@ -264,10 +333,18 @@ const RegisterPage = () => {
                     id="doctor_bio"
                     name="doctor_bio"
                     rows="3"
-                    className={`form-input ${errors.doctor_bio && touched.doctor_bio ? "border-red-500" : ""}`}
+                    className={`form-input ${
+                      errors.doctor_bio && touched.doctor_bio
+                        ? "border-red-500"
+                        : ""
+                    }`}
                     placeholder="Ceritakan tentang pengalaman dan keahlian Anda"
                   />
-                  <ErrorMessage name="doctor_bio" component="div" className="form-error" />
+                  <ErrorMessage
+                    name="doctor_bio"
+                    component="div"
+                    className="form-error"
+                  />
                 </div>
               </>
             )}
@@ -291,7 +368,10 @@ const RegisterPage = () => {
             <div className="text-center text-sm">
               <p className="text-gray-600">
                 Sudah punya akun?{" "}
-                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                <Link
+                  to="/login"
+                  className="text-primary-600 hover:text-primary-700 font-medium"
+                >
                   Login
                 </Link>
               </p>
@@ -300,8 +380,7 @@ const RegisterPage = () => {
         )}
       </Formik>
     </div>
-  )
-}
+  );
+};
 
-export default RegisterPage
-
+export default RegisterPage;
