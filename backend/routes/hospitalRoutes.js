@@ -1,38 +1,44 @@
-const express = require("express")
-const router = express.Router()
-const hospitalController = require("../controllers/hospitalController")
-const { authenticate } = require("../middleware/authMiddleware")
-const { validate, favoriteHospitalValidationRules } = require("../middleware/validationMiddleware")
+const express = require("express");
+const router = express.Router();
 
-// Add a hospital to favorites
-router.post(
-  "/favorites",
-  authenticate,
-  favoriteHospitalValidationRules,
-  validate,
-  hospitalController.addFavoriteHospital,
-)
+const { getProvinces } = require("../scrape/get-provinces");
+const { getCities } = require("../scrape/get-cities");
+const { getHospitalList } = require("../scrape/hospitals");
+const { getBedDetail } = require("../scrape/bed-detail");
+const { getHospitalMap } = require("../scrape/hospital-map");
 
-// Get all favorite hospitals for current user
-router.get("/favorites", authenticate, hospitalController.getFavoriteHospitals)
+// semua endpoint GET
+router.get("/get-provinces", async (req, res) => {
+  const data = await getProvinces();
+  res.json(data);
+});
 
-// Get a specific favorite hospital
-router.get("/favorites/:id", authenticate, hospitalController.getFavoriteHospitalById)
+router.get("/get-cities", async (req, res) => {
+  const { provinceid } = req.query;
+  const data = await getCities(provinceid);
+  res.json(data);
+});
 
-// Update a favorite hospital
-router.put(
-  "/favorites/:id",
-  authenticate,
-  favoriteHospitalValidationRules,
-  validate,
-  hospitalController.updateFavoriteHospital,
-)
+router.get("/get-hospitals", async (req, res) => {
+  const { type, provinceid, cityid } = req.query;
+  const data = await getHospitalList({
+    type: Number(type),
+    provinceid,
+    cityid,
+  });
+  res.json(data);
+});
 
-// Delete a favorite hospital
-router.delete("/favorites/:id", authenticate, hospitalController.deleteFavoriteHospital)
+router.get("/get-bed-detail", async (req, res) => {
+  const { type, hospitalid } = req.query;
+  const data = await getBedDetail(hospitalid, Number(type));
+  res.json(data);
+});
 
-// Search for nearby hospitals
-router.get("/nearby", authenticate, hospitalController.searchNearbyHospitals)
+router.get("/get-hospital-map", async (req, res) => {
+  const { hospitalid } = req.query;
+  const data = await getHospitalMap(hospitalid);
+  res.json(data);
+});
 
-module.exports = router
-
+module.exports = router;

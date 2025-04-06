@@ -1,281 +1,298 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { FiPlus, FiMapPin, FiTrash2, FiNavigation } from "react-icons/fi"
-import { toast } from "react-toastify"
-import PageHeader from "../../components/common/PageHeader"
-import LoadingSpinner from "../../components/common/LoadingSpinner"
-import EmptyState from "../../components/common/EmptyState"
-import ConfirmDialog from "../../components/common/ConfirmDialog"
-import { getFavoriteHospitals, deleteFavoriteHospital, addFavoriteHospital } from "../../services/hospitalService"
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { FiSearch, FiMapPin, FiClock, FiArrowLeft } from "react-icons/fi";
+import { toast } from "react-toastify";
+import PageHeader from "../../components/common/PageHeader";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import {
+  getProvinces,
+  getCities,
+  searchHospitals,
+} from "../../services/hospitalApiService";
 
-const HospitalsPage = () => {
-  const [hospitals, setHospitals] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [deleteId, setDeleteId] = useState(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [newHospital, setNewHospital] = useState({
-    hospital_name: "",
-    hospital_address: "",
-    hospital_phone: "",
-    hospital_coordinates: "",
-  })
+const HospitalSearchPage = () => {
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [searchParams, setSearchParams] = useState({
+    jenis: 2, // Default to non-COVID beds (jenis=2)
+    propinsi: "", // Empty by default
+    kabkota: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [loadingProvinces, setLoadingProvinces] = useState(true);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    fetchHospitals()
-  }, [])
+    const fetchProvinces = async () => {
+      try {
+        setLoadingProvinces(true);
+        const data = await getProvinces();
+        setProvinces(data.provinces);
 
-  const fetchHospitals = async () => {
-    try {
-      setLoading(true)
-      const data = await getFavoriteHospitals()
-      setHospitals(data)
-    } catch (error) {
-      console.error("Error fetching hospitals:", error)
-      toast.error("Gagal memuat daftar rumah sakit")
-    } finally {
-      setLoading(false)
-    }
-  }
+        // Set default province if available
+        if (data.provinces.length > 0) {
+          setSearchParams((prev) => ({
+            ...prev,
+            propinsi: data.provinces[0].code,
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching provinces:", error);
+        toast.error("Gagal memuat daftar provinsi");
+      } finally {
+        setLoadingProvinces(false);
+      }
+    };
 
-  const handleDeleteClick = (id) => {
-    setDeleteId(id)
-    setShowDeleteConfirm(true)
-  }
+    fetchProvinces();
+  }, []);
 
-  const handleDeleteConfirm = async () => {
-    try {
-      await deleteFavoriteHospital(deleteId)
-      setHospitals(hospitals.filter((hospital) => hospital.id !== deleteId))
-      toast.success("Rumah sakit berhasil dihapus dari favorit")
-    } catch (error) {
-      console.error("Error deleting hospital:", error)
-      toast.error("Gagal menghapus rumah sakit dari favorit")
-    } finally {
-      setShowDeleteConfirm(false)
-      setDeleteId(null)
-    }
-  }
+  // Fetch cities when province changes
+  useEffect(() => {
+    const fetchCities = async () => {
+      if (!searchParams.propinsi) {
+        setCities([]);
+        return;
+      }
 
-  const handleAddFormSubmit = async (e) => {
-    e.preventDefault()
+      try {
+        setLoadingCities(true);
+        const response = await getCities(searchParams.propinsi);
+        setCities(response.cities || []);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+        toast.error("Gagal memuat daftar kota");
+        setCities([]);
+      } finally {
+        setLoadingCities(false);
+      }
+    };
 
-    if (!newHospital.hospital_name) {
-      toast.error("Nama rumah sakit wajib diisi")
-      return
-    }
-
-    try {
-      const result = await addFavoriteHospital(newHospital)
-      setHospitals([...hospitals, result])
-      setNewHospital({
-        hospital_name: "",
-        hospital_address: "",
-        hospital_phone: "",
-        hospital_coordinates: "",
-      })
-      setShowAddForm(false)
-      toast.success("Rumah sakit berhasil ditambahkan ke favorit")
-    } catch (error) {
-      console.error("Error adding hospital:", error)
-      toast.error("Gagal menambahkan rumah sakit ke favorit")
-    }
-  }
+    fetchCities();
+  }, [searchParams.propinsi]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setNewHospital({ ...newHospital, [name]: value })
-  }
+    const { name, value } = e.target;
+    setSearchParams((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords
-          setNewHospital({
-            ...newHospital,
-            hospital_coordinates: `${latitude},${longitude}`,
-          })
-          toast.success("Lokasi berhasil didapatkan")
-        },
-        (error) => {
-          console.error("Error getting location:", error)
-          toast.error("Gagal mendapatkan lokasi")
-        },
-      )
-    } else {
-      toast.error("Geolocation tidak didukung oleh browser Anda")
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const result = await searchHospitals(searchParams);
+      if (result.success) {
+        setSearchResults(result.data);
+      } else {
+        console.error("Error searching hospitals:", result.message);
+        toast.error("Gagal mencari rumah sakit: " + result.message);
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error("Error searching hospitals:", error);
+      toast.error("Gagal mencari rumah sakit");
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
+      setHasSearched(true);
     }
-  }
+  };
 
-  const openInMaps = (coordinates) => {
-    if (!coordinates) return
-
-    const [latitude, longitude] = coordinates.split(",")
-    window.open(`https://www.google.com/maps?q=${latitude},${longitude}`, "_blank")
-  }
-
-  if (loading) {
-    return <LoadingSpinner className="py-12" />
+  if (loadingProvinces) {
+    return <LoadingSpinner className="py-12" />;
   }
 
   return (
     <div>
-      <PageHeader
-        title="Rumah Sakit Favorit"
-        description="Kelola daftar rumah sakit favorit Anda"
-        action={
-          <button onClick={() => setShowAddForm(true)} className="btn btn-primary">
-            <FiPlus className="mr-2 -ml-1 h-5 w-5" />
-            Tambah Rumah Sakit
-          </button>
-        }
-      />
-
-      {showAddForm && (
-        <div className="card mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Tambah Rumah Sakit Favorit</h2>
-          <form onSubmit={handleAddFormSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="hospital_name" className="form-label">
-                  Nama Rumah Sakit <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="hospital_name"
-                  name="hospital_name"
-                  value={newHospital.hospital_name}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="hospital_phone" className="form-label">
-                  Nomor Telepon
-                </label>
-                <input
-                  type="text"
-                  id="hospital_phone"
-                  name="hospital_phone"
-                  value={newHospital.hospital_phone}
-                  onChange={handleInputChange}
-                  className="form-input"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="hospital_address" className="form-label">
-                Alamat
-              </label>
-              <textarea
-                id="hospital_address"
-                name="hospital_address"
-                value={newHospital.hospital_address}
-                onChange={handleInputChange}
-                rows={2}
-                className="form-input"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="hospital_coordinates" className="form-label">
-                Koordinat
-              </label>
-              <div className="flex">
-                <input
-                  type="text"
-                  id="hospital_coordinates"
-                  name="hospital_coordinates"
-                  value={newHospital.hospital_coordinates}
-                  onChange={handleInputChange}
-                  placeholder="latitude,longitude"
-                  className="form-input flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  className="ml-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-                  title="Gunakan lokasi saat ini"
-                >
-                  <FiNavigation className="h-5 w-5" />
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Klik tombol di samping untuk menggunakan lokasi saat ini</p>
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              <button type="button" onClick={() => setShowAddForm(false)} className="btn btn-outline">
-                Batal
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Simpan
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {hospitals.length === 0 ? (
-        <EmptyState
-          title="Belum ada rumah sakit favorit"
-          description="Tambahkan rumah sakit favorit untuk akses cepat ke informasi rumah sakit."
-          icon={FiMapPin}
-          actionText="Tambah Rumah Sakit"
-          actionLink="#"
-          actionOnClick={() => setShowAddForm(true)}
+      <div className="mb-6 flex items-center">
+        <Link
+          to="/dashboard"
+          className="mr-4 text-gray-500 hover:text-gray-700"
+        >
+          <FiArrowLeft className="h-5 w-5" />
+        </Link>
+        <PageHeader
+          title="Cari Rumah Sakit"
+          description="Cari informasi ketersediaan tempat tidur di rumah sakit"
         />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {hospitals.map((hospital) => (
-            <div key={hospital.id} className="card">
-              <div className="flex justify-between items-start">
-                <h3 className="text-lg font-semibold text-gray-900">{hospital.hospital_name}</h3>
-                <div className="flex space-x-2">
-                  <button onClick={() => handleDeleteClick(hospital.id)} className="text-red-600 hover:text-red-900">
-                    <FiTrash2 className="h-5 w-5" />
-                  </button>
+      </div>
+
+      <div className="card mb-8">
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label htmlFor="jenis" className="form-label">
+                Pilih Tempat Tidur
+              </label>
+              <select
+                id="jenis"
+                name="jenis"
+                value={searchParams.jenis}
+                onChange={handleInputChange}
+                className="form-input"
+              >
+                <option value="1">Covid 19</option>
+                <option value="2">Non Covid 19</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="propinsi" className="form-label">
+                Propinsi
+              </label>
+              <select
+                id="propinsi"
+                name="propinsi"
+                value={searchParams.propinsi}
+                onChange={handleInputChange}
+                className="form-input"
+                required
+              >
+                <option value="">-- Pilih Propinsi --</option>
+                {provinces.map((province) => (
+                  <option key={province.code} value={province.code}>
+                    {province.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="kabkota" className="form-label">
+                Kab/Kota
+              </label>
+              <select
+                id="kabkota"
+                name="kabkota"
+                value={searchParams.kabkota}
+                onChange={handleInputChange}
+                className="form-input"
+                disabled={loadingCities}
+              >
+                <option value="">-- Semua --</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="btn btn-primary flex items-center"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+              ) : (
+                <FiSearch className="mr-2" />
+              )}
+              Cari
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {hasSearched && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">
+            {searchResults.length > 0
+              ? `Ditemukan ${searchResults.length} Rumah Sakit`
+              : "Tidak ada rumah sakit yang ditemukan"}
+          </h2>
+
+          {Array.isArray(searchResults) &&
+            searchResults.map((hospital) => (
+              <div key={hospital.id} className="card mb-4">
+                <h3 className="text-lg font-bold text-primary-700 mb-2">
+                  {hospital.name}
+                </h3>
+                <p className="flex items-start mb-4">
+                  <FiMapPin className="mr-2 mt-1 text-gray-500 flex-shrink-0" />
+                  <span className="text-gray-700">{hospital.address}</span>
+                </p>
+
+                <h4 className="font-medium text-gray-800 mb-2">
+                  Ketersediaan Tempat Tidur:
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ruangan
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Kelas
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tersedia
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Update Terakhir
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {hospital.beds.map((bed, index) => (
+                        <tr
+                          key={index}
+                          className={bed.available > 0 ? "bg-green-50" : ""}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {bed.ward}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {bed.class}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                bed.available > 0
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {bed.available} bed kosong
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="flex items-center">
+                              <FiClock className="mr-1" />
+                              {bed.lastUpdated}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4">
+                  <Link
+                    to={`/hospitals/${hospital.id}`}
+                    className="text-primary-600 hover:text-primary-800 font-medium"
+                  >
+                    Lihat Detail
+                  </Link>
                 </div>
               </div>
-
-              {hospital.hospital_address && <p className="mt-2 text-sm text-gray-500">{hospital.hospital_address}</p>}
-
-              {hospital.hospital_phone && (
-                <p className="mt-1 text-sm text-gray-500">Telepon: {hospital.hospital_phone}</p>
-              )}
-
-              {hospital.hospital_coordinates && (
-                <div className="mt-4">
-                  <button
-                    onClick={() => openInMaps(hospital.hospital_coordinates)}
-                    className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    <FiNavigation className="mr-1 h-4 w-4" /> Lihat di Peta
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
         </div>
       )}
-
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleDeleteConfirm}
-        title="Hapus Rumah Sakit"
-        message="Apakah Anda yakin ingin menghapus rumah sakit ini dari favorit? Tindakan ini tidak dapat dibatalkan."
-        confirmText="Hapus"
-        cancelText="Batal"
-        type="danger"
-      />
     </div>
-  )
-}
+  );
+};
 
-export default HospitalsPage
-
+export default HospitalSearchPage;
