@@ -29,9 +29,9 @@ import HospitalsPage from "./pages/hospitals/HospitalsPage";
 
 // Doctor Pages
 import DoctorDashboardPage from "./pages/doctor/DoctorDashboardPage";
-// import DoctorProfilePage from "./pages/doctor/DoctorProfilePage"
+import DoctorProfilePage from "./pages/doctor/DoctorProfilePage";
 import DoctorConsultationsPage from "./pages/doctor/DoctorConsultationsPage";
-// import DoctorConsultationDetailPage from "./pages/doctor/DoctorConsultationDetailPage";
+import DoctorConsultationDetailPage from "./pages/doctor/DoctorConsultationDetailPage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole = null }) => {
@@ -144,14 +144,14 @@ function App() {
         }
       >
         <Route path="/doctor/dashboard" element={<DoctorDashboardPage />} />
-        {/* <Route path="/doctor/profile" element={<DoctorProfilePage />} /> */}
+        <Route path="/doctor/profile" element={<DoctorProfilePage />} />
         <Route
           path="/doctor/consultations"
           element={<DoctorConsultationsPage />}
         />
         <Route
           path="/doctor/consultations/:id"
-          // element={<DoctorConsultationDetailPage />}
+          element={<DoctorConsultationDetailPage />}
         />
       </Route>
 
