@@ -36,7 +36,7 @@ This project was built using the following stack:
 | Frontend      | React.js + Tailwind CSS         |
 | Backend       | Node.js + Express               |
 | Authentication| JWT (JSON Web Tokens)           |
-| Database      | PostgreSQL                      |
+| Database      | MySQL                           |
 | Realtime Data | SIRANAP API (Hospital Beds)     |
 | Deployment    | Vercel / Railway                |
 
