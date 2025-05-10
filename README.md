@@ -51,3 +51,18 @@ Here’s how you get started with MediTrack:
 ```bash
 git clone https://github.com/yourusername/meditrack.git
 cd meditrack
+```
+### 🔧 Step 2: Install Dependencies
+```bash
+npm Install
+```
+### 🔧 Step 2: COnfigure your dependencies
+```bash
+DATABASE_URL=your_database_url
+JWT_SECRET=your_jwt_secret
+SIRANAP_API=https://yankes.kemkes.go.id/app/siranap/pencarian
+```
+### 🔧 Step 2: Run the Development Server
+```bash
+npm run dev
+```
