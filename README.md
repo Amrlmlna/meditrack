@@ -49,7 +49,7 @@ Here’s how you get started with MediTrack:
 ### 🔧 Step 1: Clone the Repo
 
 ```bash
-git clone https://github.com/yourusername/meditrack.git
+git clone https://github.com/Amrlmlna/meditrack.git
 cd meditrack
 ```
 ### 🔧 Step 2: Install Dependencies
